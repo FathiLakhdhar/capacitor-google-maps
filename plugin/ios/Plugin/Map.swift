@@ -632,6 +632,15 @@ public class Map {
                             }
                         }.resume()
                     }
+                } else if iconUrl.starts(with: "data:image/") {
+                    let base64String = String(iconUrl.suffix(from: iconUrl.firstIndex(of: ",")!))
+                    
+                    if let stringData = Data(base64Encoded: base64String),
+                        let iconImage = UIImage(data: stringData) {
+                        self.markerIcons[iconUrl] = iconImage
+                        newMarker.icon = getResizedIcon(iconImage, marker)
+                    }
+                    
                 } else if let iconImage = UIImage(named: "public/\(iconUrl)") {
                     self.markerIcons[iconUrl] = iconImage
                     newMarker.icon = getResizedIcon(iconImage, marker)
