@@ -633,8 +633,8 @@ public class Map {
                         }.resume()
                     }
                 } else if iconUrl.starts(with: "data:image/") {
-                    let base64String = String(iconUrl.suffix(from: iconUrl.firstIndex(of: ",")!))
-                    
+                    let commaIndex = iconUrl.firstIndex(of: ",")!
+                    let base64String = String(iconUrl[iconUrl.index(after: commaIndex)...])
                     if let stringData = Data(base64Encoded: base64String),
                         let iconImage = UIImage(data: stringData) {
                         self.markerIcons[iconUrl] = iconImage
