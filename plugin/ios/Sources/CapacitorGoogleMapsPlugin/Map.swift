@@ -89,6 +89,8 @@ public class Map {
 
     // swiftlint:disable weak_delegate
     private var delegate: CapacitorGoogleMapsPlugin
+    private var renderRetryCount = 0
+    private static let maxRenderRetries = 20
 
     init(id: String, config: GoogleMapConfig, delegate: CapacitorGoogleMapsPlugin) {
         self.id = id
@@ -101,7 +103,7 @@ public class Map {
         }
         self.render()
     }
-    
+
     func render() {
         DispatchQueue.main.async {
             self.mapViewController.mapViewBounds = [
@@ -110,21 +112,32 @@ public class Map {
                 "x": self.config.x,
                 "y": self.config.y
             ]
-            
+
             self.mapViewController.cameraPosition = [
                 "latitude": self.config.center.lat,
                 "longitude": self.config.center.lng,
                 "zoom": self.config.zoom
             ]
-            
+
             self.targetViewController = self.getTargetContainer(refWidth: self.config.width, refHeight: self.config.height)
-            
-            if let target = self.targetViewController {
-                target.tag = Map.MAP_TAG
-                target.removeAllSubview()
-                self.mapViewController.view.frame = target.bounds
-                target.addSubview(self.mapViewController.view)
+
+            guard let target = self.targetViewController else {
+                if self.renderRetryCount < Map.maxRenderRetries {
+                    self.renderRetryCount += 1
+                    CAPLog.print("CapacitorGoogleMaps: target container not ready, retrying (\(self.renderRetryCount)/\(Map.maxRenderRetries))...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.render()
+                    }
+                } else {
+                    CAPLog.print("CapacitorGoogleMaps: target container not found after \(Map.maxRenderRetries) retries for map \(self.id)")
+                }
+                return
             }
+
+            target.tag = Map.MAP_TAG
+            target.removeAllSubview()
+            self.mapViewController.view.frame = target.bounds
+            target.addSubview(self.mapViewController.view)
         }
     }
 
