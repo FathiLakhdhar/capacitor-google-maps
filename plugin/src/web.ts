@@ -698,6 +698,11 @@ export class CapacitorGoogleMapsWeb extends WebPlugin implements CapacitorGoogle
         img.style.width = `${marker.iconSize.width}px`;
         img.style.height = `${marker.iconSize.height}px`;
       }
+      if (marker.iconAnchor && marker.iconSize) {
+        const offsetX = marker.iconAnchor.x - marker.iconSize.width / 2;
+        const offsetY = marker.iconAnchor.y - marker.iconSize.height;
+        img.style.transform = `translate(${-offsetX}px, ${-offsetY}px)`;
+      }
       content = img;
     } else {
       const pinOptions: google.maps.marker.PinElementOptions = {
