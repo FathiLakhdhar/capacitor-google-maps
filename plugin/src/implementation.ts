@@ -74,18 +74,6 @@ export interface AddMarkerArgs {
   marker: Marker;
 }
 
-export interface UpdateMarkerArgs {
-  id: string;
-  markerId: string;
-  marker: Marker;
-}
-
-export interface UpdateMarkersArgs {
-  id: string;
-  markerIds: string[];
-  markers: Marker[];
-}
-
 export interface AddPolygonsArgs {
   id: string;
   polygons: Polygon[];
@@ -200,8 +188,6 @@ export interface CapacitorGoogleMapsPlugin extends Plugin {
   removeTileOverlay(args: RemoveTileOverlayArgs): Promise<void>;
   addMarker(args: AddMarkerArgs): Promise<{ id: string }>;
   addMarkers(args: AddMarkersArgs): Promise<{ ids: string[] }>;
-  updateMarker(args: UpdateMarkerArgs): Promise<void>;
-  updateMarkers(args: UpdateMarkersArgs): Promise<void>;
   removeMarker(args: RemoveMarkerArgs): Promise<void>;
   removeMarkers(args: RemoveMarkersArgs): Promise<void>;
   addPolygons(args: AddPolygonsArgs): Promise<{ ids: string[] }>;

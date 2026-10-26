@@ -18,8 +18,6 @@ import type {
   RemoveMarkerArgs,
   TrafficLayerArgs,
   RemoveMarkersArgs,
-  UpdateMarkerArgs,
-  UpdateMarkersArgs,
   MapBoundsContainsArgs,
   EnableClusteringArgs,
   FitBoundsArgs,
@@ -337,58 +335,6 @@ export class CapacitorGoogleMapsWeb extends WebPlugin implements CapacitorGoogle
     this.currMarkerId++;
 
     return { id: id };
-  }
-
-  async updateMarker(_args: UpdateMarkerArgs): Promise<void> {
-    const advancedMarker = this.maps[_args.id].markers[_args.markerId];
-    if (!advancedMarker) {
-      throw new Error(`Marker with id ${_args.markerId} not found`);
-    }
-
-    this.applyMarkerUpdate(advancedMarker, _args.marker);
-  }
-
-  async updateMarkers(_args: UpdateMarkersArgs): Promise<void> {
-    const map = this.maps[_args.id];
-
-    _args.markerIds.forEach((markerId, index) => {
-      const advancedMarker = map.markers[markerId];
-      if (advancedMarker) {
-        this.applyMarkerUpdate(advancedMarker, _args.markers[index]);
-      }
-    });
-  }
-
-  /**
-   * Mutates an existing AdvancedMarkerElement in place (position, zIndex, and — when the
-   * existing content is a plain <img> — its src/size/anchor) instead of tearing down and
-   * recreating the marker. This avoids a new DOM node + marker object on every position
-   * update, which matters for frequently-moving markers (e.g. live vehicle tracking).
-   */
-  private applyMarkerUpdate(advancedMarker: google.maps.marker.AdvancedMarkerElement, marker: Marker): void {
-    if (marker.coordinate) {
-      advancedMarker.position = marker.coordinate;
-    }
-
-    if (marker.zIndex !== undefined) {
-      advancedMarker.zIndex = marker.zIndex;
-    }
-
-    if (marker.iconUrl && advancedMarker.content instanceof HTMLImageElement) {
-      const img = advancedMarker.content;
-      if (img.src !== marker.iconUrl) {
-        img.src = marker.iconUrl;
-      }
-      if (marker.iconSize) {
-        img.style.width = `${marker.iconSize.width}px`;
-        img.style.height = `${marker.iconSize.height}px`;
-      }
-      if (marker.iconAnchor && marker.iconSize) {
-        const offsetX = marker.iconAnchor.x - marker.iconSize.width / 2;
-        const offsetY = marker.iconAnchor.y - marker.iconSize.height;
-        img.style.transform = `translate(${-offsetX}px, ${-offsetY}px)`;
-      }
-    }
   }
 
   async removeMarkers(_args: RemoveMarkersArgs): Promise<void> {
