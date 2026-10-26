@@ -40,6 +40,8 @@ export interface GoogleMapInterface {
   removeTileOverlay(id: string): Promise<void>;
   addMarker(marker: Marker): Promise<string>;
   addMarkers(markers: Marker[]): Promise<string[]>;
+  updateMarker(id: string, marker: Marker): Promise<void>;
+  updateMarkers(ids: string[], markers: Marker[]): Promise<void>;
   removeMarker(id: string): Promise<void>;
   removeMarkers(ids: string[]): Promise<void>;
   addPolygons(polygons: Polygon[]): Promise<string[]>;
@@ -392,6 +394,39 @@ export class GoogleMap {
     });
 
     return res.ids;
+  }
+
+  /**
+   * Updates an existing marker in place (position, icon, etc.) without removing and
+   * re-adding it. Prefer this over removeMarker + addMarker for markers that move
+   * frequently (e.g. live vehicle tracking), since it avoids recreating the underlying
+   * marker/DOM node on every update.
+   *
+   * @param id id of the marker to update
+   * @param marker the new marker configuration
+   * @returns
+   */
+  async updateMarker(id: string, marker: Marker): Promise<void> {
+    return CapacitorGoogleMaps.updateMarker({
+      id: this.id,
+      markerId: id,
+      marker,
+    });
+  }
+
+  /**
+   * Updates multiple existing markers in place. See updateMarker for details.
+   *
+   * @param ids ids of the markers to update, matched by index to `markers`
+   * @param markers the new marker configurations, matched by index to `ids`
+   * @returns
+   */
+  async updateMarkers(ids: string[], markers: Marker[]): Promise<void> {
+    return CapacitorGoogleMaps.updateMarkers({
+      id: this.id,
+      markerIds: ids,
+      markers,
+    });
   }
 
   /**

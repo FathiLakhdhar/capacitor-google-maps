@@ -336,6 +336,51 @@ class CapacitorGoogleMap(
         }
     }
 
+    /**
+     * Updates existing markers in place (position, zIndex, icon) instead of removing and
+     * re-adding them. Avoids the remove()+addMarker() round trip on every position update,
+     * which matters for frequently-moving markers (e.g. live vehicle tracking).
+     */
+    fun updateMarkers(
+            updates: Map<String, CapacitorGoogleMapMarker>,
+            callback: (error: GoogleMapsError?) -> Unit
+    ) {
+        try {
+            googleMap ?: throw GoogleMapNotAvailable()
+
+            CoroutineScope(Dispatchers.Main).launch {
+                updates.forEach { (id, updatedMarker) ->
+                    val existing = markers[id] ?: return@forEach
+                    val googleMapMarker = existing.googleMapMarker ?: return@forEach
+
+                    googleMapMarker.position = updatedMarker.coordinate
+                    googleMapMarker.zIndex = updatedMarker.getZIndex()
+
+                    val icon: Deferred<BitmapDescriptor?> =
+                            CoroutineScope(Dispatchers.IO).async {
+                                this@CapacitorGoogleMap.resolveIcon(updatedMarker)
+                            }
+                    val resolvedIcon = icon.await()
+                    if (resolvedIcon != null) {
+                        googleMapMarker.setIcon(resolvedIcon)
+                    }
+
+                    existing.coordinate = updatedMarker.coordinate
+                    existing.iconUrl = updatedMarker.iconUrl
+                    existing.iconSize = updatedMarker.iconSize
+                }
+
+                callback(null)
+            }
+        } catch (e: GoogleMapsError) {
+            callback(e)
+        }
+    }
+
+    fun updateMarker(id: String, updatedMarker: CapacitorGoogleMapMarker, callback: (error: GoogleMapsError?) -> Unit) {
+        updateMarkers(mapOf(id to updatedMarker), callback)
+    }
+
     fun addPolygons(newPolygons: List<CapacitorGoogleMapsPolygon>, callback: (ids: Result<List<String>>) -> Unit) {
         try {
             googleMap ?: throw GoogleMapNotAvailable()
@@ -869,45 +914,53 @@ class CapacitorGoogleMap(
         }
 
 
-        if (!marker.iconUrl.isNullOrEmpty()) {
-            if (this.markerIcons.contains(marker.iconUrl)) {
-                val cachedBitmap = this.markerIcons[marker.iconUrl]
-                markerOptions.icon(getResizedIcon(cachedBitmap!!, marker))
-            } else {
-                try {
-                    var stream: InputStream? = null
-                    if (marker.iconUrl!!.startsWith("https:")) {
-                        stream = URL(marker.iconUrl).openConnection().getInputStream()
-                    } else if (marker.iconUrl!!.startsWith("data:image/")) {// png, jpeg ...
-                        val decoded = Base64Utils.decode(marker.iconUrl!!.substring(marker.iconUrl!!.indexOf(",") + 1))
-                        stream = decoded.inputStream()
-                    } else {
-                        stream = this.delegate.context.assets.open("public/${marker.iconUrl}")
-                    }
-                    var bitmap = BitmapFactory.decodeStream(stream)
-                    this.markerIcons[marker.iconUrl!!] = bitmap
-                    markerOptions.icon(getResizedIcon(bitmap, marker))
-                } catch (e: Exception) {
-                    var detailedMessage = "${e.javaClass} - ${e.localizedMessage}"
-                    if (marker.iconUrl!!.endsWith(".svg")) {
-                        detailedMessage = "SVG not supported"
-                    }
-
-                    Log.w(
-                            "CapacitorGoogleMaps",
-                            "Could not load image '${marker.iconUrl}': ${detailedMessage}. Using default marker icon."
-                    )
-                }
-            }
-        } else {
-            if (marker.colorHue != null) {
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(marker.colorHue!!))
-            }
+        val icon = resolveIcon(marker)
+        if (icon != null) {
+            markerOptions.icon(icon)
         }
 
         marker.markerOptions = markerOptions
 
         return markerOptions
+    }
+
+    private fun resolveIcon(marker: CapacitorGoogleMapMarker): BitmapDescriptor? {
+        if (!marker.iconUrl.isNullOrEmpty()) {
+            if (this.markerIcons.contains(marker.iconUrl)) {
+                val cachedBitmap = this.markerIcons[marker.iconUrl]
+                return getResizedIcon(cachedBitmap!!, marker)
+            }
+
+            try {
+                var stream: InputStream? = null
+                if (marker.iconUrl!!.startsWith("https:")) {
+                    stream = URL(marker.iconUrl).openConnection().getInputStream()
+                } else if (marker.iconUrl!!.startsWith("data:image/")) {// png, jpeg ...
+                    val decoded = Base64Utils.decode(marker.iconUrl!!.substring(marker.iconUrl!!.indexOf(",") + 1))
+                    stream = decoded.inputStream()
+                } else {
+                    stream = this.delegate.context.assets.open("public/${marker.iconUrl}")
+                }
+                val bitmap = BitmapFactory.decodeStream(stream)
+                this.markerIcons[marker.iconUrl!!] = bitmap
+                return getResizedIcon(bitmap, marker)
+            } catch (e: Exception) {
+                var detailedMessage = "${e.javaClass} - ${e.localizedMessage}"
+                if (marker.iconUrl!!.endsWith(".svg")) {
+                    detailedMessage = "SVG not supported"
+                }
+
+                Log.w(
+                        "CapacitorGoogleMaps",
+                        "Could not load image '${marker.iconUrl}': ${detailedMessage}. Using default marker icon."
+                )
+                return null
+            }
+        } else if (marker.colorHue != null) {
+            return BitmapDescriptorFactory.defaultMarker(marker.colorHue!!)
+        }
+
+        return null
     }
 
     private fun getResizedIcon(

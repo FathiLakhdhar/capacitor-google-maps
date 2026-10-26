@@ -346,6 +346,8 @@ Vue({
 * [`removeTileOverlay(...)`](#removetileoverlay)
 * [`addMarker(...)`](#addmarker)
 * [`addMarkers(...)`](#addmarkers)
+* [`updateMarker(...)`](#updatemarker)
+* [`updateMarkers(...)`](#updatemarkers)
 * [`removeMarker(...)`](#removemarker)
 * [`removeMarkers(...)`](#removemarkers)
 * [`addPolygons(...)`](#addpolygons)
@@ -500,6 +502,34 @@ addMarkers(markers: Marker[]) => Promise<string[]>
 | **`markers`** | <code>Marker[]</code> |
 
 **Returns:** <code>Promise&lt;string[]&gt;</code>
+
+--------------------
+
+
+### updateMarker(...)
+
+```typescript
+updateMarker(id: string, marker: Marker) => Promise<void>
+```
+
+| Param        | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`id`**     | <code>string</code>                       |
+| **`marker`** | <code><a href="#marker">Marker</a></code> |
+
+--------------------
+
+
+### updateMarkers(...)
+
+```typescript
+updateMarkers(ids: string[], markers: Marker[]) => Promise<void>
+```
+
+| Param         | Type                  |
+| ------------- | --------------------- |
+| **`ids`**     | <code>string[]</code> |
+| **`markers`** | <code>Marker[]</code> |
 
 --------------------
 
